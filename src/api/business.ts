@@ -1,7 +1,7 @@
 import { client } from './client'
 import type { BusinessConfig, SummaryReport } from '../types/business'
 
-const BASE = '/api/v1/business'
+const BASE = '/api/business'
 
 export const businessApi = {
   getConfig: () => client.get<BusinessConfig>(`${BASE}/setup/`).then((r) => r.data),

@@ -1,7 +1,7 @@
 import { client } from './client'
 import type { Account, Entry, EntryInput } from '../types/accounts'
 
-const BASE = '/api/v1/accounting'
+const BASE = '/api/accounting'
 
 export const accountsApi = {
   list: () => client.get<Account[]>(`${BASE}/accounts/`).then((r) => r.data),
