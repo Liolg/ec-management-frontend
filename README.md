@@ -1,73 +1,84 @@
-# React + TypeScript + Vite
+# EC Management — Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A React 19 single-page application for double-entry bookkeeping and business reporting. Connects to a Django REST backend.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- **Dashboard** — revenue, expenses, net profit, cash, receivables, and payables at a glance
+- **Accounts** — create and browse the chart of accounts (assets, liabilities, equity, revenue, expenses)
+- **Journal Entries** — record debit/credit entries with balanced-line validation
+- **JWT auth** — silent token refresh on 401; tokens stored in `localStorage`
+- **Toast notifications** — contextual success/error feedback
 
-## React Compiler
+## Tech Stack
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+| Layer | Library |
+|---|---|
+| UI | React 19, Tailwind CSS v4 |
+| Routing | React Router v7 |
+| Server state | TanStack React Query v5 |
+| Forms | React Hook Form v7 + Zod v4 |
+| HTTP | Axios |
+| Build | Vite 8, TypeScript 6 |
 
-## Expanding the ESLint configuration
+## Getting Started
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+**Prerequisites:** Node.js 20+ and a running instance of the backend API.
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+```bash
+# 1. Install dependencies
+npm install
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+# 2. Configure environment
+cp .env.example .env.local
+# Edit .env.local and set VITE_API_URL to your backend origin
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+# 3. Start the dev server
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+The app will be available at `http://localhost:5173`.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Environment Variables
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+| Variable | Default | Description |
+|---|---|---|
+| `VITE_API_URL` | `http://localhost:8000` | Base URL of the backend API |
+
+## Scripts
+
+```bash
+npm run dev       # Start dev server with HMR
+npm run build     # Type-check then produce a production bundle
+npm run preview   # Serve the production bundle locally
+npm run lint      # Run ESLint
 ```
+
+## Project Structure
+
+```
+src/
+├── api/            # Axios client + per-resource API modules
+├── components/     # Shared UI components and forms
+├── context/        # AuthContext, ToastContext
+├── hooks/          # React Query hooks (queries & mutations)
+├── lib/            # Small utilities
+├── pages/          # Route-level components (Login, Dashboard, Accounts, Entries)
+└── types/          # TypeScript domain types (accounts, business, products)
+```
+
+## API
+
+All requests go through the Axios instance in `src/api/client.ts`. It attaches `Authorization: Bearer <token>` to every request and automatically refreshes the access token on 401 responses. If the refresh fails, both tokens are cleared and the user is redirected to `/login`.
+
+Backend endpoints used:
+
+| Method | Path | Purpose |
+|---|---|---|
+| `POST` | `/api/auth/token/` | Obtain token pair |
+| `POST` | `/api/auth/token/refresh/` | Refresh access token |
+| `GET/POST` | `/api/v1/accounting/accounts/` | Chart of accounts |
+| `GET/POST` | `/api/v1/accounting/entries/` | Journal entries |
+| `POST` | `/api/v1/accounting/entries/:id/void/` | Void an entry |
+| `GET` | `/api/v1/business/setup/` | Business configuration |
+| `GET` | `/api/v1/business/reports/summary/` | Financial summary |
