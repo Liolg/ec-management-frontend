@@ -1,1 +1,10 @@
 @import "tailwindcss";
+
+@theme {
+  /* Brand purple — replaces blue-600 for all primary actions */
+  --color-brand:        #863bff;
+  --color-brand-hover:  #7a2ef5;
+
+  /* Font */
+  --font-sans: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
+}

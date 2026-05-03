@@ -16,5 +16,6 @@ export const entriesApi = {
   get: (id: string) => client.get<Entry>(`${BASE}/entries/${id}/`).then((r) => r.data),
   create: (data: EntryInput) => client.post<Entry>(`${BASE}/entries/`, data).then((r) => r.data),
   update: (id: string, data: Partial<EntryInput>) => client.patch<Entry>(`${BASE}/entries/${id}/`, data).then((r) => r.data),
-  void: (id: string) => client.post<Entry>(`${BASE}/entries/${id}/void/`).then((r) => r.data),
+  delete: (id: string) => client.delete(`${BASE}/entries/${id}/`),
+  void: (id: string) => client.post<{ status: string }>(`${BASE}/entries/${id}/void/`).then((r) => r.data),
 }

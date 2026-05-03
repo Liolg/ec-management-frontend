@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
+import faviconUrl from '../assets/favicon.svg'
 
 export default function Login() {
   const { signIn } = useAuth()
@@ -38,7 +39,10 @@ export default function Login() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="w-full max-w-sm bg-white rounded-xl shadow p-8 flex flex-col gap-6">
-        <h1 className="text-2xl font-semibold text-gray-900">EC Management</h1>
+        <div className="flex items-center gap-3">
+          <img src={faviconUrl} width={32} height={30} alt="" />
+          <h1 className="text-2xl font-semibold text-gray-900">EC Management</h1>
+        </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div className="flex flex-col gap-1">
@@ -47,7 +51,7 @@ export default function Login() {
               value={username}
               onChange={e => setUsername(e.target.value)}
               placeholder="Username"
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand"
             />
             {fieldErrors.username && (
               <p className="text-xs text-red-500">{fieldErrors.username}</p>
@@ -61,7 +65,7 @@ export default function Login() {
               value={password}
               onChange={e => setPassword(e.target.value)}
               placeholder="Password"
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand"
             />
             {fieldErrors.password && (
               <p className="text-xs text-red-500">{fieldErrors.password}</p>
@@ -73,7 +77,7 @@ export default function Login() {
           <button
             type="submit"
             disabled={loading}
-            className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg px-4 py-2 transition-colors"
+            className="bg-brand hover:bg-brand-hover disabled:opacity-50 text-white text-sm font-medium rounded-lg px-4 py-2 transition-colors"
           >
             {loading ? 'Signing in…' : 'Sign in'}
           </button>

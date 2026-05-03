@@ -7,6 +7,17 @@ import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import Accounts from './pages/Accounts'
 import Entries from './pages/Entries'
+import Setup from './pages/Setup'
+import Materials from './pages/products/Materials'
+import Labors from './pages/products/Labors'
+import CostSheets from './pages/products/CostSheets'
+import ProductsPage from './pages/products/Products'
+import Sales from './pages/transactions/Sales'
+import Purchases from './pages/transactions/Purchases'
+import Expenses from './pages/transactions/Expenses'
+import Payments from './pages/transactions/Payments'
+import ProfitLoss from './pages/reports/ProfitLoss'
+import InventoryReport from './pages/reports/Inventory'
 import AppLayout from './components/AppLayout'
 
 const queryClient = new QueryClient()
@@ -25,7 +36,7 @@ function ErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
         <p className="text-sm text-gray-500 font-mono bg-gray-50 rounded p-3">{message}</p>
         <button
           onClick={resetErrorBoundary}
-          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors self-start"
+          className="px-4 py-2 bg-brand hover:bg-brand-hover text-white text-sm font-medium rounded-lg transition-colors self-start"
         >
           Try again
         </button>
@@ -53,6 +64,20 @@ function App() {
                   <Route index element={<Dashboard />} />
                   <Route path="/accounts" element={<Accounts />} />
                   <Route path="/entries" element={<Entries />} />
+                  <Route path="/setup" element={<Setup />} />
+
+                  <Route path="/products" element={<ProductsPage />} />
+                  <Route path="/products/materials" element={<Materials />} />
+                  <Route path="/products/labors" element={<Labors />} />
+                  <Route path="/products/costsheets" element={<CostSheets />} />
+
+                  <Route path="/transactions/sales" element={<Sales />} />
+                  <Route path="/transactions/purchases" element={<Purchases />} />
+                  <Route path="/transactions/expenses" element={<Expenses />} />
+                  <Route path="/transactions/payments" element={<Payments />} />
+
+                  <Route path="/reports/profit-loss" element={<ProfitLoss />} />
+                  <Route path="/reports/inventory" element={<InventoryReport />} />
                 </Route>
               </Routes>
             </ErrorBoundary>

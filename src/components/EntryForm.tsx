@@ -3,9 +3,11 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useAccounts } from '../hooks/useAccounts'
 import { useCreateEntry } from '../hooks/useCreateEntry'
+import { useUpdateEntry } from '../hooks/useUpdateEntry'
+import type { Entry } from '../types/accounts'
 
 const lineSchema = z.object({
-  id: z.string().optional(), // RHF appends this for its own keying — must allow it
+  id: z.string().optional(),
   account: z.string().min(1, 'Select an account'),
   type: z.enum(['D', 'C']),
   value: z.number({ error: 'Enter a number' }).positive('Must be > 0'),
@@ -14,6 +16,7 @@ const lineSchema = z.object({
 const entrySchema = z.object({
   description: z.string().min(1, 'Required'),
   date: z.string().min(1, 'Required'),
+  reference: z.string().optional(),
   lines: z.array(lineSchema).min(2, 'Add at least 2 lines'),
 }).refine(
   (data) => {
@@ -28,37 +31,55 @@ type FormValues = z.infer<typeof entrySchema>
 
 interface Props {
   onSuccess: () => void
+  entryId?: string
+  defaultEntry?: Entry
 }
 
-export default function EntryForm({ onSuccess }: Props) {
+export default function EntryForm({ onSuccess, entryId, defaultEntry }: Props) {
   const { data: accounts } = useAccounts()
+  const createMutation = useCreateEntry({ onSuccess })
+  const updateMutation = useUpdateEntry({ onSuccess })
+  const mutation = entryId ? updateMutation : createMutation
 
-  const mutation = useCreateEntry({
-    onSuccess,
-  })
+  const defaultLines = defaultEntry?.lines.map(l => ({
+    id: l.id,
+    account: l.account.id,
+    type: l.type,
+    value: parseFloat(l.value),
+  })) ?? [
+    { account: '', type: 'D' as const, value: 0 },
+    { account: '', type: 'C' as const, value: 0 },
+  ]
 
   const { register, handleSubmit, control, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(entrySchema),
     defaultValues: {
-      lines: [
-        { account: '', type: 'D', value: 0 },
-        { account: '', type: 'C', value: 0 },
-      ],
+      description: defaultEntry?.description ?? '',
+      date: defaultEntry?.date ?? '',
+      reference: defaultEntry?.reference ?? '',
+      lines: defaultLines,
     },
   })
 
   const { fields, append, remove } = useFieldArray({ control, name: 'lines' })
 
   function onSubmit(data: FormValues) {
-    mutation.mutate({
+    const payload = {
       description: data.description,
       date: data.date,
+      reference: data.reference,
       lines: data.lines.map(l => ({
+        id: l.id,
         account: l.account,
         type: l.type,
         value: String(l.value),
       })),
-    })
+    }
+    if (entryId) {
+      updateMutation.mutate({ id: entryId, data: payload })
+    } else {
+      createMutation.mutate(payload)
+    }
   }
 
   return (
@@ -69,7 +90,7 @@ export default function EntryForm({ onSuccess }: Props) {
           <input
             {...register('description')}
             placeholder="e.g. Monthly rent payment"
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand"
           />
           {errors.description && (
             <p className="text-xs text-red-500">{errors.description.message}</p>
@@ -81,11 +102,20 @@ export default function EntryForm({ onSuccess }: Props) {
           <input
             type="date"
             {...register('date')}
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand"
           />
           {errors.date && (
             <p className="text-xs text-red-500">{errors.date.message}</p>
           )}
+        </div>
+
+        <div className="flex flex-col gap-1 w-36">
+          <label className="text-xs font-medium text-gray-500">Reference</label>
+          <input
+            {...register('reference')}
+            placeholder="e.g. INV-001"
+            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand"
+          />
         </div>
       </div>
 
@@ -102,7 +132,7 @@ export default function EntryForm({ onSuccess }: Props) {
             <div className="flex flex-col gap-1">
               <select
                 {...register(`lines.${index}.account`)}
-                className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand"
               >
                 <option value="">Select…</option>
                 {accounts?.map(a => (
@@ -116,7 +146,7 @@ export default function EntryForm({ onSuccess }: Props) {
 
             <select
               {...register(`lines.${index}.type`)}
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand"
             >
               <option value="D">Debit</option>
               <option value="C">Credit</option>
@@ -128,7 +158,7 @@ export default function EntryForm({ onSuccess }: Props) {
                 step="0.01"
                 {...register(`lines.${index}.value`, { valueAsNumber: true })}
                 placeholder="0.00"
-                className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand"
               />
               {errors.lines?.[index]?.value && (
                 <p className="text-xs text-red-500">{errors.lines[index].value?.message}</p>
@@ -156,7 +186,7 @@ export default function EntryForm({ onSuccess }: Props) {
         <button
           type="button"
           onClick={() => append({ account: '', type: 'D', value: 0 })}
-          className="text-sm text-blue-600 hover:text-blue-700 text-left"
+          className="text-sm text-brand hover:text-brand-hover text-left"
         >
           + Add line
         </button>
@@ -170,7 +200,7 @@ export default function EntryForm({ onSuccess }: Props) {
         <button
           type="submit"
           disabled={mutation.isPending}
-          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
+          className="px-4 py-2 bg-brand hover:bg-brand-hover disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
         >
           {mutation.isPending ? 'Saving…' : 'Save entry'}
         </button>

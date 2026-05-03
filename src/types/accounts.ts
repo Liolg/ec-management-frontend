@@ -1,4 +1,4 @@
-export type AccountType = 'asset' | 'liability' | 'equity' | 'revenue' | 'expense'
+export type AccountType = 'asset' | 'liability' | 'equity' | 'income' | 'expense'
 
 export interface Account {
   id: string
@@ -10,7 +10,8 @@ export interface Account {
 
 export interface Line {
   id: string
-  account: Account  // full nested object — read only
+  account: Account
+  description: string
   type: 'D' | 'C'
   value: string
 }
@@ -19,19 +20,22 @@ export interface Entry {
   id: string
   description: string
   date: string
+  reference: string
   voided: boolean
   lines: Line[]
 }
 
-// Shapes for create/update — account is just the id, not the full object
 export interface LineInput {
+  id?: string
   account: string
+  description?: string
   type: 'D' | 'C'
-  value: string    // decimal string, matches Django's DecimalField
+  value: string
 }
 
 export interface EntryInput {
   description: string
   date: string
+  reference?: string
   lines: LineInput[]
 }
