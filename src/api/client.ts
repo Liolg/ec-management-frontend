@@ -1,41 +1,67 @@
-import axios from 'axios'
+import axios, { type InternalAxiosRequestConfig } from 'axios'
+import { API_URL, clearSession, refreshAccessToken } from './auth'
 
-const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
+interface SessionRequest extends InternalAxiosRequestConfig {
+  sessionToken?: string | null
+  retried?: boolean
+}
 
-export const client = axios.create({
-  baseURL: BASE_URL,
-})
+let pendingRefresh: { token: string; promise: Promise<void> } | undefined
 
-// Attach stored access token to every request
-client.interceptors.request.use((config) => {
-  const token = localStorage.getItem('access_token')
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`
+function refreshOnce(token: string) {
+  if (pendingRefresh?.token === token) return pendingRefresh.promise
+
+  const promise = refreshAccessToken(token)
+    .then((access) => {
+      if (localStorage.getItem('refresh_token') === token) {
+        localStorage.setItem('access_token', access)
+      }
+    })
+    .finally(() => {
+      if (pendingRefresh?.promise === promise) pendingRefresh = undefined
+    })
+
+  pendingRefresh = { token, promise }
+  return promise
+}
+
+export const client = axios.create({ baseURL: API_URL })
+
+client.interceptors.request.use((config: SessionRequest) => {
+  const sessionToken = localStorage.getItem('refresh_token')
+  if (config.retried && config.sessionToken !== sessionToken) {
+    throw new axios.CanceledError('Session changed')
   }
+  config.sessionToken = sessionToken
+
+  const access = localStorage.getItem('access_token')
+  if (access) config.headers.set('Authorization', `Bearer ${access}`)
   return config
 })
 
-// On 401, attempt silent refresh; on failure clear tokens
-client.interceptors.response.use(
-  (response) => response,
-  async (error) => {
-    const original = error.config
-    if (error.response?.status === 401 && !original._retry) {
-      original._retry = true
-      const refresh = localStorage.getItem('refresh_token')
-      if (refresh) {
-        try {
-          const { data } = await axios.post(`${BASE_URL}/api/auth/token/refresh/`, { refresh })
-          localStorage.setItem('access_token', data.access)
-          original.headers.Authorization = `Bearer ${data.access}`
-          return client(original)
-        } catch {
-          localStorage.removeItem('access_token')
-          localStorage.removeItem('refresh_token')
-          window.location.href = '/login'
-        }
-      }
+client.interceptors.response.use(undefined, async (error: unknown) => {
+  if (!axios.isAxiosError(error)) throw error
+
+  const request: SessionRequest | undefined = error.config
+  const token = localStorage.getItem('refresh_token')
+  if (error.response?.status !== 401 || !request || request.sessionToken !== token) throw error
+
+  if (!token || request.retried) {
+    clearSession()
+    throw error
+  }
+
+  request.retried = true
+  const currentAccess = localStorage.getItem('access_token')
+  // A previous request may have already refreshed the access token that failed here.
+  if (!currentAccess || request.headers.get('Authorization') === `Bearer ${currentAccess}`) {
+    try {
+      await refreshOnce(token)
+    } catch {
+      if (localStorage.getItem('refresh_token') === token) clearSession()
+      throw error
     }
-    return Promise.reject(error)
-  },
-)
+  }
+
+  return client(request)
+})

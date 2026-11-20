@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { Suspense, useState } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard,
@@ -20,7 +20,6 @@ import {
   ChevronRight,
 } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
-import faviconUrl from '../assets/favicon.svg'
 
 interface NavGroup {
   label: string
@@ -112,7 +111,7 @@ export default function AppLayout() {
     <div className="flex min-h-screen">
       <aside className="w-56 bg-gray-900 text-gray-300 flex flex-col shrink-0">
         <div className="px-6 py-5 text-white font-semibold text-lg border-b border-gray-700 flex items-center gap-3">
-          <img src={faviconUrl} width={22} height={21} alt="" />
+          <img src={`${import.meta.env.BASE_URL}favicon.svg`} width={22} height={21} alt="" />
           EC Management
         </div>
 
@@ -149,8 +148,10 @@ export default function AppLayout() {
         </div>
       </aside>
 
-      <main className="flex-1 p-8 bg-gray-50 overflow-y-auto">
-        <Outlet />
+      <main className="min-w-0 flex-1 p-8 bg-gray-50 overflow-y-auto">
+        <Suspense fallback={<p role="status" className="text-gray-500">Loading page…</p>}>
+          <Outlet />
+        </Suspense>
       </main>
     </div>
   )

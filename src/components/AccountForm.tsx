@@ -3,10 +3,11 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useCreateAccount } from '../hooks/useCreateAccount'
 import { useUpdateAccount } from '../hooks/useUpdateAccount'
+import { getErrorMessage } from '../lib/getErrorMessage'
 
 const schema = z.object({
-  code: z.number({ error: 'Enter a number' }).int().positive('Must be positive'),
-  name: z.string().min(1, 'Required'),
+  code: z.string().trim().min(1, 'Required').max(32),
+  name: z.string().trim().min(1, 'Required').max(200),
   type: z.enum(['asset', 'liability', 'equity', 'income', 'expense']),
 })
 
@@ -14,7 +15,7 @@ type FormValues = z.infer<typeof schema>
 
 interface Props {
   onSuccess: () => void
-  accountId?: string
+  accountId?: number
   defaultValues?: Partial<FormValues>
 }
 
@@ -40,10 +41,10 @@ export default function AccountForm({ onSuccess, accountId, defaultValues }: Pro
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
       <div className="flex gap-3">
         <div className="flex flex-col gap-1 w-28">
-          <label className="text-xs font-medium text-gray-500">Code</label>
+          <label htmlFor="account-code" className="text-xs font-medium text-gray-500">Code</label>
           <input
-            type="number"
-            {...register('code', { valueAsNumber: true })}
+            id="account-code"
+            {...register('code')}
             placeholder="1000"
             className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand"
           />
@@ -51,8 +52,9 @@ export default function AccountForm({ onSuccess, accountId, defaultValues }: Pro
         </div>
 
         <div className="flex flex-col gap-1 flex-1">
-          <label className="text-xs font-medium text-gray-500">Name</label>
+          <label htmlFor="account-name" className="text-xs font-medium text-gray-500">Name</label>
           <input
+            id="account-name"
             {...register('name')}
             placeholder="e.g. Cash and Cash Equivalents"
             className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand"
@@ -61,8 +63,9 @@ export default function AccountForm({ onSuccess, accountId, defaultValues }: Pro
         </div>
 
         <div className="flex flex-col gap-1">
-          <label className="text-xs font-medium text-gray-500">Type</label>
+          <label htmlFor="account-type" className="text-xs font-medium text-gray-500">Type</label>
           <select
+            id="account-type"
             {...register('type')}
             className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand"
           >
@@ -75,7 +78,7 @@ export default function AccountForm({ onSuccess, accountId, defaultValues }: Pro
       </div>
 
       {mutation.isError && (
-        <p className="text-sm text-red-500">Failed to save account. Try again.</p>
+        <p role="alert" className="text-sm text-red-500">{getErrorMessage(mutation.error)}</p>
       )}
 
       <div className="flex justify-end">

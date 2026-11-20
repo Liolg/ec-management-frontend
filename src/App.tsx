@@ -1,24 +1,27 @@
+import { lazy } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ErrorBoundary, type FallbackProps } from 'react-error-boundary'
-import { AuthProvider, useAuthContext } from './context/AuthContext'
-import { ToastProvider } from './context/ToastContext'
+import { useAuthContext } from './context/AuthContext'
+import { AuthProvider } from './context/AuthProvider'
+import { ToastProvider } from './context/ToastProvider'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import Accounts from './pages/Accounts'
 import Entries from './pages/Entries'
-import Setup from './pages/Setup'
-import Materials from './pages/products/Materials'
-import Labors from './pages/products/Labors'
-import CostSheets from './pages/products/CostSheets'
-import ProductsPage from './pages/products/Products'
-import Sales from './pages/transactions/Sales'
-import Purchases from './pages/transactions/Purchases'
-import Expenses from './pages/transactions/Expenses'
-import Payments from './pages/transactions/Payments'
-import ProfitLoss from './pages/reports/ProfitLoss'
-import InventoryReport from './pages/reports/Inventory'
 import AppLayout from './components/AppLayout'
+
+const Setup = lazy(() => import('./pages/Setup'))
+const Products = lazy(() => import('./pages/products/Products'))
+const Materials = lazy(() => import('./pages/products/Materials'))
+const Labors = lazy(() => import('./pages/products/Labors'))
+const CostSheets = lazy(() => import('./pages/products/CostSheets'))
+const Sales = lazy(() => import('./pages/transactions/Sales'))
+const Purchases = lazy(() => import('./pages/transactions/Purchases'))
+const Expenses = lazy(() => import('./pages/transactions/Expenses'))
+const Payments = lazy(() => import('./pages/transactions/Payments'))
+const ProfitLoss = lazy(() => import('./pages/reports/ProfitLoss'))
+const InventoryReport = lazy(() => import('./pages/reports/Inventory'))
 
 const queryClient = new QueryClient()
 
@@ -47,9 +50,9 @@ function ErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
 
 function App() {
   return (
-    <AuthProvider>
-      <ToastProvider>
-        <QueryClientProvider client={queryClient}>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <ToastProvider>
           <BrowserRouter>
             <ErrorBoundary FallbackComponent={ErrorFallback}>
               <Routes>
@@ -66,7 +69,7 @@ function App() {
                   <Route path="/entries" element={<Entries />} />
                   <Route path="/setup" element={<Setup />} />
 
-                  <Route path="/products" element={<ProductsPage />} />
+                  <Route path="/products" element={<Products />} />
                   <Route path="/products/materials" element={<Materials />} />
                   <Route path="/products/labors" element={<Labors />} />
                   <Route path="/products/costsheets" element={<CostSheets />} />
@@ -82,9 +85,9 @@ function App() {
               </Routes>
             </ErrorBoundary>
           </BrowserRouter>
-        </QueryClientProvider>
-      </ToastProvider>
-    </AuthProvider>
+        </ToastProvider>
+      </AuthProvider>
+    </QueryClientProvider>
   )
 }
 

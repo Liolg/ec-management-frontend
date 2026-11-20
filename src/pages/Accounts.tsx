@@ -7,6 +7,7 @@ import ConfirmModal from '../components/ConfirmModal'
 import FormModal from '../components/FormModal'
 import PageHeader from '../components/PageHeader'
 import EmptyState from '../components/EmptyState'
+import { getErrorMessage } from '../lib/getErrorMessage'
 import type { Account } from '../types/accounts'
 
 export default function Accounts() {
@@ -67,7 +68,10 @@ export default function Accounts() {
                       <Pencil size={14} />
                     </button>
                     <button
-                      onClick={() => setDeleting(account)}
+                      onClick={() => {
+                        deleteMutation.reset()
+                        setDeleting(account)
+                      }}
                       className="text-gray-400 hover:text-red-500 transition-colors"
                       title="Delete"
                     >
@@ -94,7 +98,7 @@ export default function Accounts() {
             defaultValues={{
               code: editing.code,
               name: editing.name,
-              type: editing.type as 'asset' | 'liability' | 'equity' | 'income' | 'expense',
+              type: editing.type,
             }}
             onSuccess={() => setEditing(null)}
           />
@@ -104,13 +108,12 @@ export default function Accounts() {
       {deleting && (
         <ConfirmModal
           title="Delete account"
-          message={`Delete "${deleting.name}"? This cannot be undone. Accounts in use by journal entries cannot be deleted.`}
+          message={`Delete "${deleting.name}"? This cannot be undone.`}
           confirmLabel="Delete"
           danger
-          onConfirm={() => {
-            deleteMutation.mutate(deleting.id)
-            setDeleting(null)
-          }}
+          pending={deleteMutation.isPending}
+          error={deleteMutation.isError ? getErrorMessage(deleteMutation.error) : undefined}
+          onConfirm={() => deleteMutation.mutate(deleting.id, { onSuccess: () => setDeleting(null) })}
           onCancel={() => setDeleting(null)}
         />
       )}

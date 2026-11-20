@@ -15,21 +15,22 @@ export interface BusinessConfig {
 export interface BusinessConfigInput {
   company_name?: string
   currency?: string
-  cash_account?: string
-  receivable_account?: string
-  payable_account?: string
-  revenue_account?: string
-  cogs_account?: string | null
-  inventory_account?: string
-  expense_account?: string
+  cash_account?: number
+  receivable_account?: number
+  payable_account?: number
+  revenue_account?: number
+  cogs_account?: number | null
+  inventory_account?: number
+  expense_account?: number
 }
 
 export type PaymentMethod = 'cash' | 'credit'
 export type TransactionStatus = 'confirmed' | 'voided'
+export type ReportPeriod = { start?: string; end?: string }
 
 export interface Sale {
-  id: string
-  product: string
+  id: number
+  product: number
   product_name: string
   qty: number
   unit_price: string
@@ -38,12 +39,12 @@ export interface Sale {
   customer_name: string
   payment_method: PaymentMethod
   status: TransactionStatus
-  entry: string
+  entry: number
   created_at: string
 }
 
 export interface SaleInput {
-  product: string
+  product: number
   qty: number
   unit_price?: string
   date: string
@@ -52,8 +53,8 @@ export interface SaleInput {
 }
 
 export interface Purchase {
-  id: string
-  product: string
+  id: number
+  product: number
   product_name: string
   qty: number
   unit_cost: string
@@ -62,12 +63,12 @@ export interface Purchase {
   supplier_name: string
   payment_method: PaymentMethod
   status: TransactionStatus
-  entry: string
+  entry: number
   created_at: string
 }
 
 export interface PurchaseInput {
-  product: string
+  product: number
   qty: number
   unit_cost: string
   date: string
@@ -85,14 +86,14 @@ export type ExpenseCategory =
   | 'other'
 
 export interface Expense {
-  id: string
+  id: number
   description: string
   category: ExpenseCategory
   amount: string
   date: string
   payment_method: PaymentMethod
   status: TransactionStatus
-  entry: string
+  entry: number
   created_at: string
 }
 
@@ -105,15 +106,15 @@ export interface ExpenseInput {
 }
 
 export interface Payment {
-  id: string
+  id: number
   direction: 'received' | 'made'
   amount: string
   date: string
   counterparty_name: string
-  related_sale: string | null
-  related_purchase: string | null
+  related_sale: number | null
+  related_purchase: number | null
   status: TransactionStatus
-  entry: string
+  entry: number
   created_at: string
 }
 
@@ -122,8 +123,8 @@ export interface PaymentInput {
   amount: string
   date: string
   counterparty_name?: string
-  related_sale?: string | null
-  related_purchase?: string | null
+  related_sale?: number | null
+  related_purchase?: number | null
 }
 
 export interface SummaryReport {

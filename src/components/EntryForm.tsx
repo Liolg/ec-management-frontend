@@ -4,25 +4,33 @@ import { z } from 'zod'
 import { useAccounts } from '../hooks/useAccounts'
 import { useCreateEntry } from '../hooks/useCreateEntry'
 import { useUpdateEntry } from '../hooks/useUpdateEntry'
+import { getErrorMessage } from '../lib/getErrorMessage'
 import type { Entry } from '../types/accounts'
 
+const amountPattern = /^\d{1,16}(\.\d{1,2})?$/
+
 const lineSchema = z.object({
-  id: z.string().optional(),
-  account: z.string().min(1, 'Select an account'),
+  lineId: z.number().optional(),
+  account: z.string().regex(/^[1-9]\d*$/, 'Select an account'),
   type: z.enum(['D', 'C']),
-  value: z.number({ error: 'Enter a number' }).positive('Must be > 0'),
+  value: z.string().regex(amountPattern, 'Enter an amount with up to two decimal places'),
 })
 
 const entrySchema = z.object({
   description: z.string().min(1, 'Required'),
-  date: z.string().min(1, 'Required'),
-  reference: z.string().optional(),
+  date: z.iso.date('Required'),
+  reference: z.string().max(128).optional(),
   lines: z.array(lineSchema).min(2, 'Add at least 2 lines'),
 }).refine(
-  (data) => {
-    const sum = (t: 'D' | 'C') =>
-      data.lines.filter(l => l.type === t).reduce((acc, l) => acc + (l.value ?? 0), 0)
-    return Math.abs(sum('D') - sum('C')) < 0.001
+  ({ lines }) => {
+    if (lines.some(({ value }) => !amountPattern.test(value))) return true
+    let balance = 0n
+    for (const { type, value } of lines) {
+      const [whole, fraction = ''] = value.split('.')
+      const cents = BigInt(whole) * 100n + BigInt(fraction.padEnd(2, '0'))
+      balance += type === 'D' ? cents : -cents
+    }
+    return balance === 0n
   },
   { message: 'Debits must equal credits', path: ['lines'] },
 )
@@ -31,24 +39,24 @@ type FormValues = z.infer<typeof entrySchema>
 
 interface Props {
   onSuccess: () => void
-  entryId?: string
+  entryId?: number
   defaultEntry?: Entry
 }
 
 export default function EntryForm({ onSuccess, entryId, defaultEntry }: Props) {
-  const { data: accounts } = useAccounts()
+  const { data: accounts, isError: accountError, isPending: accountsPending } = useAccounts()
   const createMutation = useCreateEntry({ onSuccess })
   const updateMutation = useUpdateEntry({ onSuccess })
   const mutation = entryId ? updateMutation : createMutation
 
   const defaultLines = defaultEntry?.lines.map(l => ({
-    id: l.id,
-    account: l.account.id,
+    lineId: l.id,
+    account: String(l.account),
     type: l.type,
-    value: parseFloat(l.value),
+    value: l.value,
   })) ?? [
-    { account: '', type: 'D' as const, value: 0 },
-    { account: '', type: 'C' as const, value: 0 },
+    { account: '', type: 'D' as const, value: '' },
+    { account: '', type: 'C' as const, value: '' },
   ]
 
   const { register, handleSubmit, control, formState: { errors } } = useForm<FormValues>({
@@ -69,10 +77,10 @@ export default function EntryForm({ onSuccess, entryId, defaultEntry }: Props) {
       date: data.date,
       reference: data.reference,
       lines: data.lines.map(l => ({
-        id: l.id,
-        account: l.account,
+        id: l.lineId,
+        account: Number(l.account),
         type: l.type,
-        value: String(l.value),
+        value: l.value,
       })),
     }
     if (entryId) {
@@ -86,8 +94,9 @@ export default function EntryForm({ onSuccess, entryId, defaultEntry }: Props) {
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-6">
       <div className="flex gap-3">
         <div className="flex flex-col gap-1 flex-1">
-          <label className="text-xs font-medium text-gray-500">Description</label>
+          <label htmlFor="entry-description" className="text-xs font-medium text-gray-500">Description</label>
           <input
+            id="entry-description"
             {...register('description')}
             placeholder="e.g. Monthly rent payment"
             className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand"
@@ -98,8 +107,9 @@ export default function EntryForm({ onSuccess, entryId, defaultEntry }: Props) {
         </div>
 
         <div className="flex flex-col gap-1">
-          <label className="text-xs font-medium text-gray-500">Date</label>
+          <label htmlFor="entry-date" className="text-xs font-medium text-gray-500">Date</label>
           <input
+            id="entry-date"
             type="date"
             {...register('date')}
             className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand"
@@ -110,8 +120,9 @@ export default function EntryForm({ onSuccess, entryId, defaultEntry }: Props) {
         </div>
 
         <div className="flex flex-col gap-1 w-36">
-          <label className="text-xs font-medium text-gray-500">Reference</label>
+          <label htmlFor="entry-reference" className="text-xs font-medium text-gray-500">Reference</label>
           <input
+            id="entry-reference"
             {...register('reference')}
             placeholder="e.g. INV-001"
             className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand"
@@ -131,6 +142,7 @@ export default function EntryForm({ onSuccess, entryId, defaultEntry }: Props) {
           <div key={field.id} className="grid grid-cols-[1fr_80px_120px_32px] gap-2 items-start">
             <div className="flex flex-col gap-1">
               <select
+                aria-label={`Account for line ${index + 1}`}
                 {...register(`lines.${index}.account`)}
                 className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand"
               >
@@ -145,6 +157,7 @@ export default function EntryForm({ onSuccess, entryId, defaultEntry }: Props) {
             </div>
 
             <select
+              aria-label={`Debit or credit for line ${index + 1}`}
               {...register(`lines.${index}.type`)}
               className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand"
             >
@@ -154,9 +167,9 @@ export default function EntryForm({ onSuccess, entryId, defaultEntry }: Props) {
 
             <div className="flex flex-col gap-1">
               <input
-                type="number"
-                step="0.01"
-                {...register(`lines.${index}.value`, { valueAsNumber: true })}
+                inputMode="decimal"
+                aria-label={`Amount for line ${index + 1}`}
+                {...register(`lines.${index}.value`)}
                 placeholder="0.00"
                 className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand"
               />
@@ -167,6 +180,7 @@ export default function EntryForm({ onSuccess, entryId, defaultEntry }: Props) {
 
             <button
               type="button"
+              aria-label={`Remove line ${index + 1}`}
               onClick={() => remove(index)}
               disabled={fields.length <= 2}
               className="mt-2 text-gray-400 hover:text-red-500 disabled:opacity-30 transition-colors text-lg leading-none"
@@ -185,7 +199,7 @@ export default function EntryForm({ onSuccess, entryId, defaultEntry }: Props) {
 
         <button
           type="button"
-          onClick={() => append({ account: '', type: 'D', value: 0 })}
+          onClick={() => append({ account: '', type: 'D', value: '' })}
           className="text-sm text-brand hover:text-brand-hover text-left"
         >
           + Add line
@@ -193,13 +207,14 @@ export default function EntryForm({ onSuccess, entryId, defaultEntry }: Props) {
       </div>
 
       {mutation.isError && (
-        <p className="text-sm text-red-500">Failed to save entry. Try again.</p>
+        <p role="alert" className="text-sm text-red-500">{getErrorMessage(mutation.error)}</p>
       )}
+      {accountError && <p role="alert" className="text-sm text-red-500">Failed to load accounts.</p>}
 
       <div className="flex justify-end">
         <button
           type="submit"
-          disabled={mutation.isPending}
+          disabled={mutation.isPending || accountsPending || !accounts?.length}
           className="px-4 py-2 bg-brand hover:bg-brand-hover disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
         >
           {mutation.isPending ? 'Saving…' : 'Save entry'}

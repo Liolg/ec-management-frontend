@@ -1,49 +1,51 @@
 export interface DirectMaterial {
-  id: string
+  id: number
   name: string
   unit: string
   cost_by_unit: number
 }
 
-export interface DirectMaterialInput {
-  name: string
-  unit: string
-  cost_by_unit: number
-}
+export type DirectMaterialInput = Omit<DirectMaterial, 'id'>
 
 export interface DirectLabor {
-  id: string
+  id: number
   name: string
   time_unit: string
   cost_by_unit: number
 }
 
-export interface DirectLaborInput {
-  name: string
-  time_unit: string
-  cost_by_unit: number
-}
+export type DirectLaborInput = Omit<DirectLabor, 'id'>
 
-export interface CostSheetMaterial {
-  id: string
-  material: string
+export interface CostSheetMaterialLine {
+  id: number
+  material: number
   qty: number
   total_cost: number
 }
 
-export interface CostSheetLabor {
-  id: string
-  labor: string
+export interface CostSheetLaborLine {
+  id: number
+  labor: number
   qty: number
   total_cost: number
+}
+
+export interface CostSheetMaterialLineInput {
+  material: number
+  qty: number
+}
+
+export interface CostSheetLaborLineInput {
+  labor: number
+  qty: number
 }
 
 export interface CostSheet {
-  id: string
+  id: number
   name: string
   unit: string | null
-  material: CostSheetMaterial[]
-  labor: CostSheetLabor[]
+  material_lines: CostSheetMaterialLine[]
+  labor_lines: CostSheetLaborLine[]
   manufacturing_overhead: number | null
   total_manufacturing_cost: number | null
   non_manufacturing_cost: number | null
@@ -54,28 +56,36 @@ export interface CostSheet {
 
 export interface CostSheetInput {
   name: string
-  unit?: string
+  unit?: string | null
+  material_lines: CostSheetMaterialLineInput[]
+  labor_lines: CostSheetLaborLineInput[]
   manufacturing_overhead?: number | null
   non_manufacturing_cost?: number | null
   profit_margin?: number | null
 }
 
 export interface Product {
-  id: string
+  id: number
   name: string
   cost_sheet: CostSheet
 }
 
 export interface ProductInput {
   name: string
-  cost_sheet: string
+  cost_sheet: number
 }
 
+export interface ProductWriteResult extends ProductInput {
+  id: number
+}
+
+export type StockDirection = 'IN' | 'OUT'
+
 export interface StockMovement {
-  id: string
-  product: string
+  id: number
+  product: number
   qty: number
-  direction: 'IN' | 'OUT'
+  direction: StockDirection
   unit_cost: string | null
   date: string
   reference: string
@@ -83,10 +93,10 @@ export interface StockMovement {
 }
 
 export interface StockAdjustmentInput {
-  product: string
+  product: number
   qty: number
-  direction: 'IN' | 'OUT'
-  unit_cost: string
+  direction: StockDirection
+  unit_cost?: string | null
   date: string
   reference?: string
 }

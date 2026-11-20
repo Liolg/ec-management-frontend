@@ -1,84 +1,35 @@
-# EC Management — Frontend
+# EC Management Frontend
 
-A React 19 single-page application for double-entry bookkeeping and business reporting. Connects to a Django REST backend.
+EC Management is a React and Django app for single-company bookkeeping, product costing, inventory, and reporting.
 
-## Features
+## Run locally
 
-- **Dashboard** — revenue, expenses, net profit, cash, receivables, and payables at a glance
-- **Accounts** — create and browse the chart of accounts (assets, liabilities, equity, revenue, expenses)
-- **Journal Entries** — record debit/credit entries with balanced-line validation
-- **JWT auth** — silent token refresh on 401; tokens stored in `localStorage`
-- **Toast notifications** — contextual success/error feedback
-
-## Tech Stack
-
-| Layer | Library |
-|---|---|
-| UI | React 19, Tailwind CSS v4 |
-| Routing | React Router v7 |
-| Server state | TanStack React Query v5 |
-| Forms | React Hook Form v7 + Zod v4 |
-| HTTP | Axios |
-| Build | Vite 8, TypeScript 6 |
-
-## Getting Started
-
-**Prerequisites:** Node.js 20+ and a running instance of the backend API.
+Use Node.js 20.19+ on the Node 20 series or Node.js 22.12+. Set up the Django backend, apply its migrations, and create a user using the backend README.
 
 ```bash
-# 1. Install dependencies
-npm install
-
-# 2. Configure environment
+npm ci
 cp .env.example .env.local
-# Edit .env.local and set VITE_API_URL to your backend origin
-
-# 3. Start the dev server
 npm run dev
 ```
 
-The app will be available at `http://localhost:5173`.
+Open http://localhost:5173 and sign in with the Django user. `VITE_API_URL` defaults to `http://localhost:8000`. Set it in `.env.local` if Django runs on a different origin, then configure Django to allow the frontend origin.
 
-## Environment Variables
+## First-run workflow
 
-| Variable | Default | Description |
-|---|---|---|
-| `VITE_API_URL` | `http://localhost:8000` | Base URL of the backend API |
+1. Open **Setup** and enter the company name and currency. Django creates the standard chart of accounts. In Setup, you can later map different accounts to business operations.
+2. Use **Accounts** and **Journal Entries** for the chart of accounts and manual entries. Transactions create their own journal entries. Open the linked transaction to void its posting.
+3. Under **Products**, create material and labor rates, build a cost sheet, and assign it to a product. Product details show current stock and stock movements. Manual adjustments record stock movements.
+4. Under **Transactions**, record and void sales, purchases, expenses, and payments. Payments can link to the corresponding sale or purchase.
+5. Use the **Dashboard**, **Profit & Loss**, and **Inventory** to review activity. Date filters apply to income and expenses. Cash, receivables, payables, and inventory show current balances.
 
-## Scripts
+Sales move stock without automatically posting cost of goods sold. Profit & Loss reflects posted journal entries. Inventory shows estimated value using current quantity and average incoming unit cost.
+
+## API and checks
+
+The app signs in through `/api/auth/token/` and uses JWT for `/api/accounting/`, `/api/products/`, and `/api/business/`. It refreshes access through `/api/auth/token/refresh/` when a request needs a new token.
 
 ```bash
-npm run dev       # Start dev server with HMR
-npm run build     # Type-check then produce a production bundle
-npm run preview   # Serve the production bundle locally
-npm run lint      # Run ESLint
+npm run lint
+npm run build
+npm run preview
 ```
-
-## Project Structure
-
-```
-src/
-├── api/            # Axios client + per-resource API modules
-├── components/     # Shared UI components and forms
-├── context/        # AuthContext, ToastContext
-├── hooks/          # React Query hooks (queries & mutations)
-├── lib/            # Small utilities
-├── pages/          # Route-level components (Login, Dashboard, Accounts, Entries)
-└── types/          # TypeScript domain types (accounts, business, products)
-```
-
-## API
-
-All requests go through the Axios instance in `src/api/client.ts`. It attaches `Authorization: Bearer <token>` to every request and automatically refreshes the access token on 401 responses. If the refresh fails, both tokens are cleared and the user is redirected to `/login`.
-
-Backend endpoints used:
-
-| Method | Path | Purpose |
-|---|---|---|
-| `POST` | `/api/auth/token/` | Obtain token pair |
-| `POST` | `/api/auth/token/refresh/` | Refresh access token |
-| `GET/POST` | `/api/v1/accounting/accounts/` | Chart of accounts |
-| `GET/POST` | `/api/v1/accounting/entries/` | Journal entries |
-| `POST` | `/api/v1/accounting/entries/:id/void/` | Void an entry |
-| `GET` | `/api/v1/business/setup/` | Business configuration |
-| `GET` | `/api/v1/business/reports/summary/` | Financial summary |

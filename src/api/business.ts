@@ -13,6 +13,7 @@ import type {
   SummaryReport,
   ProfitLossReport,
   InventoryReportItem,
+  ReportPeriod,
 } from '../types/business'
 
 const BASE = '/api/business'
@@ -27,36 +28,36 @@ export const setupApi = {
 
 export const salesApi = {
   list: () => client.get<Sale[]>(`${BASE}/sales/`).then((r) => r.data),
-  get: (id: string) => client.get<Sale>(`${BASE}/sales/${id}/`).then((r) => r.data),
+  get: (id: number) => client.get<Sale>(`${BASE}/sales/${id}/`).then((r) => r.data),
   create: (data: SaleInput) => client.post<Sale>(`${BASE}/sales/`, data).then((r) => r.data),
-  void: (id: string) => client.post<Sale>(`${BASE}/sales/${id}/void/`).then((r) => r.data),
+  void: (id: number) => client.post<Sale>(`${BASE}/sales/${id}/void/`).then((r) => r.data),
 }
 
 export const purchasesApi = {
   list: () => client.get<Purchase[]>(`${BASE}/purchases/`).then((r) => r.data),
-  get: (id: string) => client.get<Purchase>(`${BASE}/purchases/${id}/`).then((r) => r.data),
+  get: (id: number) => client.get<Purchase>(`${BASE}/purchases/${id}/`).then((r) => r.data),
   create: (data: PurchaseInput) => client.post<Purchase>(`${BASE}/purchases/`, data).then((r) => r.data),
-  void: (id: string) => client.post<Purchase>(`${BASE}/purchases/${id}/void/`).then((r) => r.data),
+  void: (id: number) => client.post<Purchase>(`${BASE}/purchases/${id}/void/`).then((r) => r.data),
 }
 
 export const expensesApi = {
   list: () => client.get<Expense[]>(`${BASE}/expenses/`).then((r) => r.data),
-  get: (id: string) => client.get<Expense>(`${BASE}/expenses/${id}/`).then((r) => r.data),
+  get: (id: number) => client.get<Expense>(`${BASE}/expenses/${id}/`).then((r) => r.data),
   create: (data: ExpenseInput) => client.post<Expense>(`${BASE}/expenses/`, data).then((r) => r.data),
-  void: (id: string) => client.post<Expense>(`${BASE}/expenses/${id}/void/`).then((r) => r.data),
+  void: (id: number) => client.post<Expense>(`${BASE}/expenses/${id}/void/`).then((r) => r.data),
 }
 
 export const paymentsApi = {
   list: () => client.get<Payment[]>(`${BASE}/payments/`).then((r) => r.data),
-  get: (id: string) => client.get<Payment>(`${BASE}/payments/${id}/`).then((r) => r.data),
+  get: (id: number) => client.get<Payment>(`${BASE}/payments/${id}/`).then((r) => r.data),
   create: (data: PaymentInput) => client.post<Payment>(`${BASE}/payments/`, data).then((r) => r.data),
-  void: (id: string) => client.post<Payment>(`${BASE}/payments/${id}/void/`).then((r) => r.data),
+  void: (id: number) => client.post<Payment>(`${BASE}/payments/${id}/void/`).then((r) => r.data),
 }
 
 export const reportsApi = {
-  summary: (params?: { start?: string; end?: string }) =>
+  summary: (params?: ReportPeriod) =>
     client.get<SummaryReport>(`${BASE}/reports/summary/`, { params }).then((r) => r.data),
-  profitLoss: (params?: { start?: string; end?: string }) =>
+  profitLoss: (params?: ReportPeriod) =>
     client.get<ProfitLossReport>(`${BASE}/reports/profit-loss/`, { params }).then((r) => r.data),
   inventory: () =>
     client.get<InventoryReportItem[]>(`${BASE}/reports/inventory/`).then((r) => r.data),
@@ -65,5 +66,5 @@ export const reportsApi = {
 // keep backward-compat export used by existing hooks
 export const businessApi = {
   getConfig: () => setupApi.get(),
-  getSummary: (params?: { start?: string; end?: string }) => reportsApi.summary(params),
+  getSummary: (params?: ReportPeriod) => reportsApi.summary(params),
 }

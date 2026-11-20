@@ -12,6 +12,8 @@ export function useCreateEntry(options?: { onSuccess?: () => void }) {
     mutationFn: (data: EntryInput) => entriesApi.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['entries'] })
+      queryClient.invalidateQueries({ queryKey: ['summary'] })
+      queryClient.invalidateQueries({ queryKey: ['profit-loss'] })
       showToast('Entry saved', 'success')
       options?.onSuccess?.()
     },

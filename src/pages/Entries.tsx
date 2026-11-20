@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { Pencil, Trash2, Ban } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { useAccounts } from '../hooks/useAccounts'
 import { useEntries } from '../hooks/useEntries'
 import { useVoidEntry } from '../hooks/useVoidEntry'
 import { useDeleteEntry } from '../hooks/useDeleteEntry'
@@ -8,6 +10,8 @@ import ConfirmModal from '../components/ConfirmModal'
 import FormModal from '../components/FormModal'
 import PageHeader from '../components/PageHeader'
 import EmptyState from '../components/EmptyState'
+import { getErrorMessage } from '../lib/getErrorMessage'
+import { fmt } from '../lib/fmt'
 import type { Entry } from '../types/accounts'
 
 export default function Entries() {
@@ -17,8 +21,10 @@ export default function Entries() {
   const [deleting, setDeleting] = useState<Entry | null>(null)
 
   const { data, isLoading, isError } = useEntries()
+  const accounts = useAccounts()
   const voidMutation = useVoidEntry()
   const deleteMutation = useDeleteEntry()
+  const accountsById = new Map(accounts.data?.map(account => [account.id, account]))
 
   if (isLoading) return <p className="p-8 text-gray-500">Loading…</p>
   if (isError) return <p className="p-8 text-red-500">Failed to load entries.</p>
@@ -30,12 +36,17 @@ export default function Entries() {
         action={
           <button
             onClick={() => setShowCreate(true)}
-            className="px-4 py-2 bg-brand hover:bg-brand-hover text-white text-sm font-medium rounded-lg transition-colors"
+            disabled={!accounts.data?.length}
+            className="px-4 py-2 bg-brand hover:bg-brand-hover text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
           >
             New Entry
           </button>
         }
       />
+      {accounts.isError && <p role="alert" className="text-sm text-red-600">Failed to load account names.</p>}
+      {accounts.data?.length === 0 && (
+        <p className="text-sm text-gray-600">Create an account under <Link to="/accounts" className="text-brand underline">Accounts</Link> to post a journal entry.</p>
+      )}
 
       {data?.length === 0 && (
         <EmptyState message="No journal entries yet." />
@@ -50,6 +61,11 @@ export default function Entries() {
                 <p className="text-xs text-gray-500">
                   {entry.date}
                   {entry.reference && <span className="ml-2 text-gray-400">· {entry.reference}</span>}
+                  {entry.source && (
+                    <Link to={`/transactions/${entry.source.type}s?id=${entry.source.id}`} className="ml-2 text-brand underline">
+                      View {entry.source.type} #{entry.source.id}
+                    </Link>
+                  )}
                 </p>
               </div>
               <div className="flex items-center gap-3">
@@ -58,16 +74,19 @@ export default function Entries() {
                     Voided
                   </span>
                 )}
-                {!entry.voided && (
+                {!entry.source && !entry.voided && (
                   <button
-                    onClick={() => setVoiding(entry)}
+                    onClick={() => {
+                      voidMutation.reset()
+                      setVoiding(entry)
+                    }}
                     className="text-gray-400 hover:text-amber-500 transition-colors"
                     title="Void entry"
                   >
                     <Ban size={14} />
                   </button>
                 )}
-                {!entry.voided && (
+                {!entry.source && !entry.voided && (
                   <button
                     onClick={() => setEditing(entry)}
                     className="text-gray-400 hover:text-brand transition-colors"
@@ -76,26 +95,36 @@ export default function Entries() {
                     <Pencil size={14} />
                   </button>
                 )}
-                <button
-                  onClick={() => setDeleting(entry)}
-                  className="text-gray-400 hover:text-red-500 transition-colors"
-                  title="Delete entry"
-                >
-                  <Trash2 size={14} />
-                </button>
+                {!entry.source && (
+                  <button
+                    onClick={() => {
+                      deleteMutation.reset()
+                      setDeleting(entry)
+                    }}
+                    className="text-gray-400 hover:text-red-500 transition-colors"
+                    title="Delete entry"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                )}
               </div>
             </div>
             <table className="w-full text-sm">
               <tbody className="divide-y divide-gray-50">
-                {entry.lines.map((line) => (
-                  <tr key={line.id}>
-                    <td className="px-6 py-2 text-gray-700">
-                      {line.account.code} — {line.account.name}
-                    </td>
-                    <td className="px-4 py-2 text-gray-500 w-16">{line.type === 'D' ? 'Debit' : 'Credit'}</td>
-                    <td className="px-6 py-2 text-gray-900 text-right w-32">{line.value}</td>
-                  </tr>
-                ))}
+                {entry.lines.map((line) => {
+                  const account = accountsById.get(line.account)
+                  const label = account ? `${account.code} — ${account.name}` : `Account #${line.account}`
+                  return (
+                    <tr key={line.id}>
+                      <td className="px-6 py-2 text-gray-700">
+                        <span>{label}</span>
+                        {line.description && <span className="block text-xs text-gray-500">{line.description}</span>}
+                      </td>
+                      <td className="px-4 py-2 text-gray-500 w-16">{line.type === 'D' ? 'Debit' : 'Credit'}</td>
+                      <td className="px-6 py-2 text-gray-900 text-right w-32">{fmt(line.value)}</td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>
@@ -124,10 +153,9 @@ export default function Entries() {
           message={`Void the entry "${voiding.description}"? This will mark it as voided and cannot be undone.`}
           confirmLabel="Void"
           danger
-          onConfirm={() => {
-            voidMutation.mutate(voiding.id)
-            setVoiding(null)
-          }}
+          pending={voidMutation.isPending}
+          error={voidMutation.isError ? getErrorMessage(voidMutation.error) : undefined}
+          onConfirm={() => voidMutation.mutate(voiding.id, { onSuccess: () => setVoiding(null) })}
           onCancel={() => setVoiding(null)}
         />
       )}
@@ -138,10 +166,9 @@ export default function Entries() {
           message={`Permanently delete "${deleting.description}"? This cannot be undone.`}
           confirmLabel="Delete"
           danger
-          onConfirm={() => {
-            deleteMutation.mutate(deleting.id)
-            setDeleting(null)
-          }}
+          pending={deleteMutation.isPending}
+          error={deleteMutation.isError ? getErrorMessage(deleteMutation.error) : undefined}
+          onConfirm={() => deleteMutation.mutate(deleting.id, { onSuccess: () => setDeleting(null) })}
           onCancel={() => setDeleting(null)}
         />
       )}

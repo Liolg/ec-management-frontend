@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
-import faviconUrl from '../assets/favicon.svg'
 
 export default function Login() {
   const { signIn } = useAuth()
@@ -16,7 +15,7 @@ export default function Login() {
   function validate() {
     const errors = { username: '', password: '' }
     if (!username.trim()) errors.username = 'Username is required'
-    if (password.length < 3) errors.password = 'Password must be at least 6 characters'
+    if (!password) errors.password = 'Password is required'
     setFieldErrors(errors)
     return !errors.username && !errors.password
   }
@@ -27,7 +26,7 @@ export default function Login() {
     setApiError(null)
     setLoading(true)
     try {
-      await signIn(username, password)
+      await signIn(username.trim(), password)
       navigate('/')
     } catch {
       setApiError('Invalid credentials')
@@ -40,14 +39,16 @@ export default function Login() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="w-full max-w-sm bg-white rounded-xl shadow p-8 flex flex-col gap-6">
         <div className="flex items-center gap-3">
-          <img src={faviconUrl} width={32} height={30} alt="" />
+          <img src={`${import.meta.env.BASE_URL}favicon.svg`} width={32} height={30} alt="" />
           <h1 className="text-2xl font-semibold text-gray-900">EC Management</h1>
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium text-gray-700">Username</label>
+            <label htmlFor="login-username" className="text-sm font-medium text-gray-700">Username</label>
             <input
+              id="login-username"
+              autoComplete="username"
               value={username}
               onChange={e => setUsername(e.target.value)}
               placeholder="Username"
@@ -59,8 +60,10 @@ export default function Login() {
           </div>
 
           <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium text-gray-700">Password</label>
+            <label htmlFor="login-password" className="text-sm font-medium text-gray-700">Password</label>
             <input
+              id="login-password"
+              autoComplete="current-password"
               type="password"
               value={password}
               onChange={e => setPassword(e.target.value)}
